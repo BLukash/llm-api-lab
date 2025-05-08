@@ -6,5 +6,6 @@ venv/
 flagged/
 
 doc/~$LM API.docx
+doc/LLM API Lab.docx
 
 .DS_Store

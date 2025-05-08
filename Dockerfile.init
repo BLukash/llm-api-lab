@@ -1,0 +1,11 @@
+FROM ollama/ollama:latest
+
+RUN apt-get update && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY init-ollama.sh /init-ollama.sh
+COPY Modelfile /Modelfile
+RUN chmod +x /init-ollama.sh
+
+ENTRYPOINT ["/bin/bash"] 

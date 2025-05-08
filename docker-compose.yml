@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      # we need to expose the port to the host, but as we may also have local ollama running, we need to use a different port
+      - "51134:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./Modelfile:/Modelfile
+    environment:
+      - OLLAMA_SKIP_CUDA=1
+    restart: unless-stopped
+    healthcheck:
+      # strange, but it doesn't work with curl(?)
+      test: ["CMD-SHELL", "timeout 5 bash -c '</dev/tcp/localhost/11434' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - ollama-network
+  init-ollama:
+    build:
+      context: .
+      dockerfile: Dockerfile.init
+    volumes:
+      - ./init-ollama.sh:/init-ollama.sh
+      - ./Modelfile:/Modelfile
+    environment:
+      - OLLAMA_HOST=ollama
+      - OLLAMA_SKIP_CUDA=1
+    depends_on:
+      ollama:
+        condition: service_healthy
+    command: /init-ollama.sh
+    networks:
+      - ollama-network
+
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    container_name: agent
+    ports:
+      - "7860:7860"
+    environment:
+      - OLLAMA_HOST=ollama
+      - OLLAMA_PORT=11434
+      - OLLAMA_SKIP_CUDA=1
+    depends_on:
+      init-ollama:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    networks:
+      - ollama-network
+
+networks:
+  ollama-network:
+    driver: bridge
+
+volumes:
+  ollama_data:

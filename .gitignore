@@ -1,10 +1,1 @@
-__pycache__/
-*.py[cod]
-*$py.class
 
-venv/
-flagged/
-
-doc/~$LM API.docx
-
-.DS_Store

@@ -2,7 +2,9 @@ version: '3.8'
 
 services:
   ollama:
-    image: ollama/ollama:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.ollama
     container_name: ollama
     ports:
       # we need to expose the port to the host, but as we may also have local ollama running, we need to use a different port
@@ -12,16 +14,28 @@ services:
       - ./Modelfile:/Modelfile
     environment:
       - OLLAMA_SKIP_CUDA=1
+      - OLLAMA_VERBOSE=false
+      - LOG_LEVEL=error
+      - OLLAMA_RETRY_MAX=2
+      - OLLAMA_TIMEOUT=60s
+      - OLLAMA_KEEP_ALIVE=60s
     restart: unless-stopped
     healthcheck:
-      # strange, but it doesn't work with curl(?)
-      test: ["CMD-SHELL", "timeout 5 bash -c '</dev/tcp/localhost/11434' || exit 1"]
-      interval: 5s
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/version"]
+      interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 15s
+      start_period: 20s
     networks:
       - ollama-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "ollama-service"
+        env: "production"
+        tag: "{{.Name}}"
   init-ollama:
     build:
       context: .
